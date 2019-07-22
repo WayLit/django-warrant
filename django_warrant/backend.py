@@ -26,11 +26,17 @@ class CognitoUser(Cognito):
 
     def get_user_obj(self,username=None,attribute_list=[],metadata={},attr_map={}):
         user_attrs = cognito_to_dict(attribute_list,CognitoUser.COGNITO_ATTR_MAPPING)
-        django_fields = [f.name for f in CognitoUser.user_class._meta.get_fields()]
+        django_fields = ['{}_id'.format(f.name) if f.is_relation else f.name
+                         for f in CognitoUser.user_class._meta.get_fields()]
         extra_attrs = {}
         for k, v in user_attrs.items():
             if k not in django_fields:
-                extra_attrs.update({k: user_attrs.pop(k, None)})
+                extra_attrs.update({k: user_attrs[k]})
+        for k, v in extra_attrs.items():
+            del user_attrs[k]
+        for k, v in user_attrs.items():
+            if k.endswith('_id'):
+                user_attrs[k] = int(v)
         if getattr(settings, 'COGNITO_CREATE_UNKNOWN_USERS', True):
             is_staff = getattr(settings, 'COGNITO_ALLOW_BACKEND_ACCESS', False)
             user, created = CognitoUser.user_class.objects.update_or_create(
