@@ -75,7 +75,7 @@ class AbstractCognitoBackend(ModelBackend):
         :param password: Cognito password
         :return: returns User instance of AUTH_USER_MODEL or None
         """
-        cognito_user = CognitoUser(
+        cognito_user = self.COGNITO_USER_CLASS(
             settings.COGNITO_USER_POOL_ID,
             settings.COGNITO_APP_ID,
             access_key=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
@@ -85,7 +85,7 @@ class AbstractCognitoBackend(ModelBackend):
             cognito_user.authenticate(password)
         except (Boto3Error, ClientError) as e:
             return self.handle_error_response(e)
-        user = cognito_user.get_user()
+        user = cognito_user.get_user(self.COGNITO_USER_CLASS.COGNITO_ATTR_MAPPING)
         if user:
             user.access_token = cognito_user.access_token
             user.id_token = cognito_user.id_token
